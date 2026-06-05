@@ -1,0 +1,75 @@
+name: PR Config Diff
+
+on:
+  pull_request:
+    types: [opened, synchronize, reopened]
+    paths:
+      - 'dev/workspaces/**'
+      - 'prod/workspaces/**'
+      - 'base/workspaces/**'
+      - 'config.yaml'
+      - 'vars.yaml'
+
+permissions:
+  contents: read
+  pull-requests: write
+
+concurrency:
+  group: cac-pr-diff-${{ github.event.pull_request.number }}
+  cancel-in-progress: true
+
+jobs:
+  detect:
+    runs-on: ubuntu-latest
+    outputs:
+      matrix: ${{ steps.detect.outputs.matrix }}
+      any: ${{ steps.detect.outputs.any }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Detect touched environments
+        id: detect
+        env:
+          BASE_REF: ${{ github.base_ref }}
+        run: |
+          git diff --name-only "origin/${BASE_REF}...HEAD" \
+            | ./.github/scripts/detect-changes.sh >> "$GITHUB_OUTPUT"
+
+  diff:
+    needs: detect
+    if: needs.detect.outputs.any == 'true'
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        include: ${{ fromJSON(needs.detect.outputs.matrix) }}
+    environment: ${{ matrix.env }}
+    env:
+      # cac reads only the var matching the active profile (viper AutomaticEnv);
+      # the other one is ignored.
+      CLIENT_CLIENT_SECRET: ${{ secrets.CAC_CLIENT_SECRET }}
+      PROFILES_DEV_CLIENT_CLIENT_SECRET: ${{ secrets.CAC_CLIENT_SECRET }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Diff against live environment
+        uses: SecureAuthCorp/ciam-config-as-code@v1.8.0
+        with:
+          args: >-
+            diff --config config.yaml
+            --workspace ${{ matrix.workspace }}
+            ${{ matrix.env == 'dev' && '--profile dev' || '' }}
+            --source merged --target remote
+            --colors=false --out diff.txt
+
+      - name: Post sticky PR comment
+        env:
+          GH_TOKEN: ${{ github.token }}
+          ENV_NAME: ${{ matrix.env }}
+          WORKSPACE: ${{ matrix.workspace }}
+          PR_NUMBER: ${{ github.event.pull_request.number }}
+          HEAD_SHA: ${{ github.event.pull_request.head.sha }}
+          RUN_URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
+        run: ./.github/scripts/comment-diff.sh
