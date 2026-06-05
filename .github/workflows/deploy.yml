@@ -58,6 +58,12 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
+      - name: Load environment variables
+        # Templates use {{ env "TENANT_ID" }}; same vars the local flow
+        # exports via `export $(xargs < <env>/.env)`.
+        run: |
+          { cat "${{ matrix.env }}/.env"; echo; } >> "$GITHUB_ENV"
+
       - name: Push configuration
         uses: SecureAuthCorp/ciam-config-as-code@v1.8.0
         with:
