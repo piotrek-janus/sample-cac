@@ -31,8 +31,10 @@ jobs:
 
       - name: Detect touched environments
         id: detect
+        env:
+          BASE_REF: ${{ github.base_ref }}
         run: |
-          git diff --name-only "origin/${{ github.base_ref }}...HEAD" \
+          git diff --name-only "origin/${BASE_REF}...HEAD" \
             | ./.github/scripts/detect-changes.sh >> "$GITHUB_OUTPUT"
 
   diff:
