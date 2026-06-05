@@ -45,7 +45,7 @@ saml_metadata:
   AttributeAuthorityDescriptors: []
   AuthnAuthorityDescriptors: []
   CacheDuration: 0
-  EntityID: https://postmance-dev.eu.authz.cloudentity.io/postmance-dev/customer-apps/saml/demo
+  EntityID: https://{{ env "TENANT_ID" }}.eu.authz.cloudentity.io/{{ env "TENANT_ID" }}/customer-apps/saml/demo
   IDPSSODescriptors: []
   PDPDescriptors: []
   RoleDescriptors: []
@@ -55,11 +55,11 @@ saml_metadata:
     - Binding: urn:oasis:names:tc:SAML:2.0:bindings:HTTP-POST
       Index: 1
       IsDefault: false
-      Location: https://postmance-dev.eu.authz.cloudentity.io/postmance-dev/customer-apps/saml/demo
+      Location: https://{{ env "TENANT_ID" }}.eu.authz.cloudentity.io/{{ env "TENANT_ID" }}/customer-apps/saml/demo
     - Binding: urn:oasis:names:tc:SAML:2.0:bindings:HTTP-Artifact
       Index: 2
       IsDefault: false
-      Location: https://postmance-dev.eu.authz.cloudentity.io/postmance-dev/customer-apps/saml/demo
+      Location: https://{{ env "TENANT_ID" }}.eu.authz.cloudentity.io/{{ env "TENANT_ID" }}/customer-apps/saml/demo
     AttributeConsumingServices: []
     AuthnRequestsSigned: true
     CacheDuration: 0
@@ -90,7 +90,7 @@ saml_metadata:
     WantAssertionsSigned: true
   ValidUntil: 2025-09-20T21:33:55.647Z
 saml_override_attributes: false
-saml_service_provider_id: https://postmance-dev.eu.authz.cloudentity.io/postmance-dev/customer-apps/saml/demo
+saml_service_provider_id: https://{{ env "TENANT_ID" }}.eu.authz.cloudentity.io/{{ env "TENANT_ID" }}/customer-apps/saml/demo
 saml_signing_hash: sha-256
 scopes: []
 subject_type: public
