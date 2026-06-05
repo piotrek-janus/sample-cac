@@ -1,0 +1,77 @@
+name: Deploy Config
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'dev/workspaces/**'
+      - 'prod/workspaces/**'
+      - 'base/workspaces/**'
+      - 'config.yaml'
+      - 'vars.yaml'
+
+permissions:
+  contents: read
+
+concurrency:
+  group: cac-deploy
+  cancel-in-progress: false
+
+jobs:
+  detect:
+    runs-on: ubuntu-latest
+    outputs:
+      matrix: ${{ steps.detect.outputs.matrix }}
+      any: ${{ steps.detect.outputs.any }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Detect touched environments
+        id: detect
+        run: |
+          BEFORE="${{ github.event.before }}"
+          if [ -n "$BEFORE" ] && git cat-file -e "$BEFORE" 2>/dev/null; then
+            git diff --name-only "$BEFORE..${{ github.sha }}" \
+              | ./.github/scripts/detect-changes.sh >> "$GITHUB_OUTPUT"
+          else
+            # Force push or unreachable history: deploy everything.
+            # Safe because `push --method patch` only applies repo-defined config.
+            ./.github/scripts/detect-changes.sh --all >> "$GITHUB_OUTPUT"
+          fi
+
+  deploy:
+    needs: detect
+    if: needs.detect.outputs.any == 'true'
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        include: ${{ fromJSON(needs.detect.outputs.matrix) }}
+    environment: ${{ matrix.env }}
+    env:
+      # cac reads only the var matching the active profile (viper AutomaticEnv);
+      # the other one is ignored.
+      CLIENT_CLIENT_SECRET: ${{ secrets.CAC_CLIENT_SECRET }}
+      PROFILES_DEV_CLIENT_CLIENT_SECRET: ${{ secrets.CAC_CLIENT_SECRET }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Push configuration
+        uses: SecureAuthCorp/ciam-config-as-code@v1.8.0
+        with:
+          args: >-
+            push --config config.yaml
+            --workspace ${{ matrix.workspace }}
+            ${{ matrix.env == 'dev' && '--profile dev' || '' }}
+            --method patch
+
+      - name: Write summary
+        run: |
+          {
+            echo "### CAC deploy: \`${{ matrix.workspace }}\` → \`${{ matrix.env }}\`"
+            echo ""
+            echo "- Method: \`patch\`"
+            echo "- Commit: \`${{ github.sha }}\`"
+          } >> "$GITHUB_STEP_SUMMARY"
