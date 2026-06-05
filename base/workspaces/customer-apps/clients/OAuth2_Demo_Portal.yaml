@@ -77,7 +77,7 @@ token_endpoint_auth_method: client_secret_basic
 token_exchange:
   actor_claims: []
 token_ttls:
-  access_token_ttl: 1h0m0s
+  access_token_ttl: 2h0m0s
   authorization_code_ttl: 10m0s
   id_token_ttl: 1h0m0s
   refresh_token_ttl: 168h0m0s
