@@ -14,6 +14,8 @@
 #   prod/workspaces/<ws>/**  -> prod x ws
 #   base/workspaces/<ws>/**  -> dev x ws AND prod x ws  (base is layered under both)
 #   config.yaml, vars.yaml   -> all envs x all workspaces found on disk
+#
+# Must be run from the repository root (uses relative paths).
 set -euo pipefail
 
 ENVS="dev prod"
@@ -38,6 +40,7 @@ add_all() {
 if [ "${1:-}" = "--all" ]; then
   add_all
 else
+  # field 3 of <env|base>/workspaces/<ws>/... is the workspace name
   while IFS= read -r file; do
     case "$file" in
       config.yaml|vars.yaml)
@@ -55,6 +58,7 @@ else
 fi
 
 matrix=$(printf '%s' "$PAIRS" | sort -u | while read -r env ws; do
+  # PAIRS always ends with a newline, so sort emits one blank line; skip it
   [ -n "$env" ] || continue
   printf '{"env":"%s","workspace":"%s"}\n' "$env" "$ws"
 done | jq -sc '.')
