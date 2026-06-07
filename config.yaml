@@ -12,7 +12,7 @@ storage:
 profiles:
   dev:
     logging:
-      level: info
+      level: debug
       format: text
     client:
       issuer_url: https://postmance-dev.eu.authz.cloudentity.io/postmance-dev/system
