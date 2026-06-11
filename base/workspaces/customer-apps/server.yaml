@@ -247,7 +247,7 @@ metadata:
     oneOf: []
     required: []
     uniqueItems: false
-name: customer-apps
+name: Customer apps
 obbr:
   industry: banking
 organization:
