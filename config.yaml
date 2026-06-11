@@ -1,23 +1,16 @@
+# Single (default) profile. Per-environment values are supplied as environment
+# variables that override these keys — see dev/.env and prod/.env. cac reads
+# them via viper (e.g. client.client_id <- CLIENT_CLIENT_ID,
+# storage.dir_path <- STORAGE_DIR_PATH, logging.level <- LOGGING_LEVEL).
+# The client secret comes from CLIENT_CLIENT_SECRET (CI: the CAC_CLIENT_SECRET
+# secret); it is never committed here.
 logging:
   level: info
   format: text
 client:
-  issuer_url: https://postmance.eu.authz.cloudentity.io/postmance/system
-  client_id: fb346c287c4d4e378cbae39aa0c3fe52
-  client_secret: invalid_secret
-  tenant_id: postmance
+  issuer_url: ""    # set per environment via CLIENT_ISSUER_URL
+  client_id: ""     # set per environment via CLIENT_CLIENT_ID
+  client_secret: "" # set via CLIENT_CLIENT_SECRET (never commit a real secret)
+  tenant_id: ""     # set per environment via CLIENT_TENANT_ID
 storage:
-  dir_path: ./prod/,./base/
-
-profiles:
-  dev:
-    logging:
-      level: debug
-      format: text
-    client:
-      issuer_url: https://postmance-dev.eu.authz.cloudentity.io/postmance-dev/system
-      client_id: 21ac20db6d0c4b8e8772f82af0a741c2
-      client_secret: invalid_secret
-      tenant_id: postmance-dev
-    storage:
-      dir_path: ./dev/,./base/
+  dir_path: ""      # set per environment via STORAGE_DIR_PATH

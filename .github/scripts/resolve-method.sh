@@ -24,9 +24,8 @@ set -uo pipefail
 ENV_NAME="${1:?usage: resolve-method.sh <env> <workspace>}"
 WORKSPACE="${2:?usage: resolve-method.sh <env> <workspace>}"
 
-# dev config lives under the `dev` profile; prod is the default profile.
-PROFILE_ARG=""
-[ "$ENV_NAME" = "dev" ] && PROFILE_ARG="--profile dev"
+# The active environment's client config is supplied via env vars (<env>/.env);
+# there is no cac profile to select.
 
 emit() { [ -n "${GITHUB_OUTPUT:-}" ] && echo "$1=$2" >> "$GITHUB_OUTPUT"; }
 
@@ -34,7 +33,7 @@ emit() { [ -n "${GITHUB_OUTPUT:-}" ] && echo "$1=$2" >> "$GITHUB_OUTPUT"; }
 # successful probe doubles as the diff we post. Capture stderr too: the
 # not-found signal arrives as an error, not on stdout.
 out=$(/tmp/cac diff --config config.yaml --no-volatile --only-present \
-  --workspace "$WORKSPACE" $PROFILE_ARG \
+  --workspace "$WORKSPACE" \
   --source merged --target remote --colors=false --out diff.txt 2>&1)
 code=$?
 

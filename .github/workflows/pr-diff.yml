@@ -47,16 +47,17 @@ jobs:
         include: ${{ fromJSON(needs.detect.outputs.matrix) }}
     environment: ${{ matrix.env }}
     env:
-      # cac reads only the var matching the active profile (viper AutomaticEnv);
-      # the other one is ignored.
+      # Overrides config.yaml's (empty) client.client_secret. The per-environment
+      # client_id / issuer_url / tenant_id / storage come from <env>/.env, loaded
+      # below.
       CLIENT_CLIENT_SECRET: ${{ secrets.CAC_CLIENT_SECRET }}
-      PROFILES_DEV_CLIENT_CLIENT_SECRET: ${{ secrets.CAC_CLIENT_SECRET }}
     steps:
       - uses: actions/checkout@v4
 
       - name: Load environment variables
-        # Templates use {{ env "TENANT_ID" }}; same vars the local flow
-        # exports via `export $(xargs < <env>/.env)`.
+        # Per-environment client config (CLIENT_*, STORAGE_*, LOGGING_*, TENANT_ID)
+        # that overrides config.yaml — the same vars the local flow exports via
+        # `export $(xargs < <env>/.env)`.
         run: |
           { cat "${{ matrix.env }}/.env"; echo; } >> "$GITHUB_ENV"
 
