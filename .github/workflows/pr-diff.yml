@@ -60,21 +60,25 @@ jobs:
         run: |
           { cat "${{ matrix.env }}/.env"; echo; } >> "$GITHUB_ENV"
 
-      - name: Diff against live environment
+      # Install the cac binary onto the runner (cached at /tmp/cac). --help is a
+      # no-op; we run cac ourselves below so we can classify a not-found remote
+      # (new workspace) instead of failing the job on it.
+      - name: Install cac
         uses: SecureAuthCorp/ciam-config-as-code@v1.8.0
         with:
-          args: >-
-            diff --config config.yaml --no-volatile --only-present
-            --workspace ${{ matrix.workspace }}
-            ${{ matrix.env == 'dev' && '--profile dev' || '' }}
-            --source merged --target remote
-            --colors=false --out diff.txt
+          args: --help
+
+      - name: Resolve method and diff against live environment
+        id: resolve
+        run: ./.github/scripts/resolve-method.sh "${{ matrix.env }}" "${{ matrix.workspace }}"
 
       - name: Post sticky PR comment
         env:
           GH_TOKEN: ${{ github.token }}
           ENV_NAME: ${{ matrix.env }}
           WORKSPACE: ${{ matrix.workspace }}
+          METHOD: ${{ steps.resolve.outputs.method }}
+          IS_NEW: ${{ steps.resolve.outputs.is_new }}
           PR_NUMBER: ${{ github.event.pull_request.number }}
           HEAD_SHA: ${{ github.event.pull_request.head.sha }}
           RUN_URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}

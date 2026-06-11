@@ -70,9 +70,13 @@ Two GitHub Actions workflows automate environment management:
 - **PR Config Diff** (`.github/workflows/pr-diff.yml`) — on every pull request,
   posts (and keeps updated) one sticky comment per affected environment and
   workspace showing the live `cac diff --source merged --target remote`,
-  i.e. exactly what merging would apply.
+  i.e. exactly what merging would apply. A workspace that does not yet exist on
+  the target environment is flagged as **new — will be imported**.
 - **Deploy Config** (`.github/workflows/deploy.yml`) — on merge to `main`,
-  runs `cac push --method patch` against each environment touched by the change.
+  pushes each environment touched by the change. The push method is resolved
+  per workspace: existing workspaces are updated with `--method patch`, while a
+  workspace that does not yet exist on the environment is created with
+  `--method import`.
 
 ### Directory → environment mapping
 
