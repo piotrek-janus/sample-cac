@@ -4,10 +4,15 @@
 #
 # Expects env vars: GH_TOKEN, ENV_NAME, WORKSPACE, PR_NUMBER, HEAD_SHA, RUN_URL
 # (GITHUB_REPOSITORY is provided by the runner.)
-# Expects diff.txt in the working directory (written by `cac diff --out diff.txt`).
+# Optional: METHOD (patch|import, default patch), IS_NEW (true|false, default false)
+#           — set by resolve-method.sh to reflect what merging will actually do.
+# Expects diff.txt in the working directory (written by `cac diff --out diff.txt`
+# on update, or a notice written by resolve-method.sh when the workspace is new).
 set -euo pipefail
 
 LIMIT=60000  # GitHub comment hard limit is 65536 chars; leave headroom
+METHOD="${METHOD:-patch}"
+IS_NEW="${IS_NEW:-false}"
 export MARKER="<!-- cac-diff:${ENV_NAME}:${WORKSPACE} -->"
 
 if [ ! -f diff.txt ]; then
@@ -17,7 +22,14 @@ fi
 
 diff_content="$(cat diff.txt)"
 
-if [ -z "$(printf '%s' "$diff_content" | tr -d '[:space:]')" ]; then
+if [ "$IS_NEW" = "true" ]; then
+  # New workspace: there is nothing on the remote to diff against — it will be
+  # created wholesale. Make that unmistakable instead of showing a code diff.
+  details="> 🆕 **New workspace — will be imported.**
+>
+> \`${WORKSPACE}\` does not exist on \`${ENV_NAME}\` yet. Merging this PR will
+> **import** it, creating it from this repository's configuration."
+elif [ -z "$(printf '%s' "$diff_content" | tr -d '[:space:]')" ]; then
   details="_No changes — the live environment already matches this configuration._"
 else
   if [ "${#diff_content}" -gt "$LIMIT" ]; then
@@ -42,7 +54,7 @@ body="${MARKER}
 
 ${details}
 
-_What \`cac push --method patch\` would apply on merge. Commit ${HEAD_SHA} · [workflow run](${RUN_URL})_"
+_What \`cac push --method ${METHOD}\` would apply on merge. Commit ${HEAD_SHA} · [workflow run](${RUN_URL})_"
 
 comment_id="$(gh api "repos/${GITHUB_REPOSITORY}/issues/${PR_NUMBER}/comments" \
   --paginate --jq '.[] | select(.body | startswith(env.MARKER)) | .id' | sed -n '1p')"

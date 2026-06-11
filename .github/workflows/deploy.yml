@@ -64,6 +64,18 @@ jobs:
         run: |
           { cat "${{ matrix.env }}/.env"; echo; } >> "$GITHUB_ENV"
 
+      # Install the cac binary onto the runner (cached at /tmp/cac) so the
+      # resolver below can probe the remote directly. --help is a no-op.
+      - name: Install cac
+        uses: SecureAuthCorp/ciam-config-as-code@v1.8.0
+        with:
+          args: --help
+
+      # New workspace (absent on remote) -> import (create); existing -> patch (merge).
+      - name: Resolve push method
+        id: resolve
+        run: ./.github/scripts/resolve-method.sh "${{ matrix.env }}" "${{ matrix.workspace }}"
+
       - name: Push configuration
         uses: SecureAuthCorp/ciam-config-as-code@v1.8.0
         with:
@@ -71,13 +83,19 @@ jobs:
             push --config config.yaml
             --workspace ${{ matrix.workspace }}
             ${{ matrix.env == 'dev' && '--profile dev' || '' }}
-            --method patch
+            --method ${{ steps.resolve.outputs.method }}
 
       - name: Write summary
+        env:
+          METHOD: ${{ steps.resolve.outputs.method }}
+          IS_NEW: ${{ steps.resolve.outputs.is_new }}
         run: |
           {
             echo "### CAC deploy: \`${{ matrix.workspace }}\` → \`${{ matrix.env }}\`"
             echo ""
-            echo "- Method: \`patch\`"
+            if [ "$IS_NEW" = "true" ]; then
+              echo "- 🆕 New workspace — imported (created from repo config)"
+            fi
+            echo "- Method: \`${METHOD}\`"
             echo "- Commit: \`${{ github.sha }}\`"
           } >> "$GITHUB_STEP_SUMMARY"
