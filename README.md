@@ -21,35 +21,41 @@ e2e/
 
 ## Usage
 
+You select an environment by sourcing its `.env` file (`dev/.env` or `prod/.env`);
+those variables override `config.yaml`. There is no `--profile` flag.
+
 ### Pull Configurations
 
-To pull configuration from development environment:
+To pull configuration from the development environment:
 
 ```bash
-export $(xargs < dev/.env) && cac pull --config config.yaml --workspace customer-apps --profile dev
+export $(xargs < dev/.env) && cac pull --config config.yaml --workspace customer-apps
 ```
 
-To pull configuration from production environment:
+To pull configuration from the production environment:
 
 ```bash
 export $(xargs < prod/.env) && cac pull --config config.yaml --workspace customer-apps
 ```
 
-### Compare Environments
+### Compare Against the Live Environment
 
-To compare development and production configurations:
+To see what merging your local config would change on an environment (this is
+what the PR diff job runs):
 
 ```bash
-export $(xargs < prod/.env) && cac diff --config config.yaml --source dev --target prod --workspace customer-apps
+export $(xargs < dev/.env) && cac diff --config config.yaml --workspace customer-apps --source merged --target remote
 ```
+
+Swap `dev/.env` for `prod/.env` to compare against production.
 
 ### Promote Changes
 
-To promote changes from development to production:
+To promote changes to production:
 
 1. Review the differences:
 ```bash
-export $(xargs < prod/.env) && cac diff --config config.yaml --source dev --target prod --workspace customer-apps
+export $(xargs < prod/.env) && cac diff --config config.yaml --workspace customer-apps --source merged --target remote
 ```
 
 2. Push the changes to production:
@@ -59,7 +65,11 @@ export $(xargs < prod/.env) && cac push --config config.yaml --workspace custome
 
 ## Configuration File Structure
 
-The `config.yaml` file contains profiles for both development and production environments. The default profile is used for production, while the `dev` profile is used for development environment.
+`config.yaml` holds a single default profile with empty placeholder values. Each
+environment's `dev/.env` / `prod/.env` supplies the actual values as environment
+variables that override the config (`CLIENT_ISSUER_URL`, `CLIENT_CLIENT_ID`,
+`CLIENT_TENANT_ID`, `STORAGE_DIR_PATH`, `LOGGING_LEVEL`), plus the
+`CLIENT_CLIENT_SECRET` (provided in CI by the `CAC_CLIENT_SECRET` secret).
 
 Check the main [README.md](../../README.md) for more details about configuration options and available
 
